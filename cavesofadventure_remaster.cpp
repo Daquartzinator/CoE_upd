@@ -7,8 +7,13 @@ public:
     string txName;
     vector<string> items;
 
+    int linkNS;
+    int linkEW;
+
     Location(string stxName){
         txName = stxName;
+        linkNS = 0;
+        linkEW = 0;
     }
 };
 
@@ -49,24 +54,42 @@ void turnAround(int *NS, int *EW){
     (*EW) *= -1;
 }
 
+void outNotVoid(string first, string check){
+    if (check != "void"){
+        cout << first << check;
+    }
+}
+
 int main(){
     string in1, in2;
     string temp[4] = {};
-    Location L_VOID("a cavern wall.");
+    Location L_WALL("a cavern wall.");
+    Location L_VOID("void");
     Location L_center("the center of the large cavern.");
-    L_center.items.push_back("torch");
+    Location L_cave("the large cavern.");
+    Location L_chest("a chest in the large cavern.");
+    L_chest.items.push_back("torch");
     Location L_crackedWall("the cracked wall.");
     Location L_houseDoor("the door to the house.");
+    Location L_house("the house.");
+    L_house.items.push_back("sword");
+    L_house.items.push_back("ibl");
     Location L_pitMouth("the mouth of the large pit.");
 
-    Location cavernMap[4][4] = {
-        {L_VOID, L_VOID,        L_VOID,         L_VOID},
-        {L_VOID, L_houseDoor,   L_crackedWall,  L_VOID},
-        {L_VOID, L_center   ,   L_pitMouth,     L_VOID},
-        {L_VOID, L_VOID,        L_VOID,         L_VOID}};
+    Location cavernMap[7][9] = {
+        {L_WALL, L_WALL,  L_WALL, L_WALL,        L_WALL,   L_WALL,       L_WALL,     L_WALL,         L_WALL},
+        {L_WALL, L_WALL,  L_WALL, L_WALL,        L_WALL,   L_pitMouth,   L_WALL,     L_WALL,         L_WALL},
+        {L_WALL, L_VOID,  L_WALL, L_WALL,        L_cave,   L_chest,      L_cave,     L_WALL,         L_WALL},
+        {L_VOID, L_house, L_VOID, L_houseDoor,   L_cave,   L_center,     L_cave,     L_crackedWall,  L_VOID},
+        {L_WALL, L_VOID,  L_WALL, L_WALL,        L_cave,   L_cave,       L_cave,     L_WALL,         L_WALL},
+        {L_WALL, L_WALL,  L_WALL, L_WALL,        L_WALL,   L_WALL,       L_WALL,     L_WALL,         L_WALL},
+        {L_WALL, L_WALL,  L_WALL, L_WALL,        L_WALL,   L_WALL,       L_WALL,     L_WALL,         L_WALL}};
 
-    int playerCol = 1;
-    int playerRow = 2;
+        /* Link setup */
+    cavernMap[3][2].linkEW = -1;
+
+    int playerCol = 5;
+    int playerRow = 3;
     int playerFacingNS = -1; /** -1 north, 1 south **/
     int playerFacingEW = 0; /** -1 west, 1 east **/
 
@@ -75,15 +98,22 @@ int main(){
     string weapon = "none";
 
     string strTemp;
+    int intTemp;
     bool breaker = false;
 
 	while (true){
+        /* Move location if you are at a linked location */
+        intTemp = playerRow;
+        playerRow += cavernMap[playerRow][playerCol].linkNS;
+        playerCol += cavernMap[intTemp][playerCol].linkEW;
         /* Status : where you are */
         cout << "\n\nYou are at " << cavernMap[playerRow][playerCol].txName;
-        cout << "\nAhead of you is " << cavernMap[playerRow + playerFacingNS][playerCol + playerFacingEW].txName;
-        cout << "\nTo your left is " << cavernMap[playerRow - playerFacingEW][playerCol + playerFacingNS].txName;
-        cout << "\nTo your right is " << cavernMap[playerRow + playerFacingEW][playerCol - playerFacingNS].txName;
-        cout << "\nBehind you is " << cavernMap[playerRow - playerFacingNS][playerCol - playerFacingEW].txName;
+        //if (lightS != "none"){
+            outNotVoid("\nAhead of you is ", cavernMap[playerRow + playerFacingNS][playerCol + playerFacingEW].txName);
+            outNotVoid("\nTo your left is ", cavernMap[playerRow - playerFacingEW][playerCol + playerFacingNS].txName);
+            outNotVoid("\nTo your right is ", cavernMap[playerRow + playerFacingEW][playerCol - playerFacingNS].txName);
+            outNotVoid("\nBehind you is ", cavernMap[playerRow - playerFacingNS][playerCol - playerFacingEW].txName);
+        //}
         for (int i = 0; i < cavernMap[playerRow][playerCol].items.size(); i++){
             cout << "\nThere is a " << cavernMap[playerRow][playerCol].items[i] << ".";
         }
@@ -101,7 +131,8 @@ int main(){
                 } else if (in2 == "backwards" || in2 == "back" || in2 == "b"){
                     turnAround(&playerFacingNS, &playerFacingEW);
                 }
-                if (cavernMap[playerRow + playerFacingNS][playerCol + playerFacingEW].txName == "a cavern wall.") {
+                if (cavernMap[playerRow + playerFacingNS][playerCol + playerFacingEW].txName == "a cavern wall."
+                        || cavernMap[playerRow + playerFacingNS][playerCol + playerFacingEW].txName == "void") {
                     cout << "\nYou can't walk into a wall.";
                 } else {
                     playerRow += playerFacingNS;
@@ -117,6 +148,20 @@ int main(){
                 turnAround(&playerFacingNS, &playerFacingEW);
             } else {
                 cout << "\nI don't recognize that direction.";
+            }
+        } else if (in1 == "enter"){
+            if (cavernMap[playerRow][playerCol].txName == "the door to the house." && (in2 == "house" || in2 == "door")){
+                cout << "\nYou enter the house.";
+                playerCol -= 2;
+            } else {
+                cout << "\nYou can't enter that.";
+            }
+        } else if (in1 == "leave"){
+            if (cavernMap[playerRow][playerCol].txName == "the house." && in2 == "house"){
+                cout << "\nYou leave the house.";
+                playerCol += 2;
+            } else {
+                cout << "\nYou can't leave that.";
             }
         } else if (in1 == "take"){
             breaker = false;
@@ -155,7 +200,7 @@ int main(){
                         if (strTemp != "none"){
                             inventory.push_back(strTemp);
                         }
-                    } else if (in2 == "dagger"){
+                    } else if (in2 == "dagger" || in2 == "sword"){
                         strTemp = weapon;
                         weapon = in2;
                         inventory.erase(inventory.begin() + i);
